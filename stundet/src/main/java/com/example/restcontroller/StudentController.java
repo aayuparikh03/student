@@ -1,9 +1,14 @@
 package com.example.restcontroller;
 
+import com.example.dto.StudentErrorResponse;
 import com.example.entity.Student;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.example.exception.StudentNotFoundException;
+import com.example.service.StudentService;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,13 +17,37 @@ import java.util.List;
 @RequestMapping("/api")
 
 public class StudentController {
+    StudentService studentService;
+
+    @Autowired
+    public StudentController(StudentService studentService) {
+        this.studentService = studentService;
+    }
     @GetMapping("/students")
     List<Student> getAllStudents()
     {
-        List<Student> allStudents=new ArrayList<>();
-        allStudents.add(new Student(1,"Aayu"));
-        allStudents.add(new Student(2,"Aryan"));
+        return studentService.findAll();
+    }
+    @GetMapping("/students/{id}")
+    Student getStudentById(@PathVariable int id)
+    {
+        return studentService.findById(id);
+    }
+    @PostMapping("/students")
+    public Student createStudent(@RequestBody Student student)
+    {
+        return studentService.save(student);
+    }
+    @PatchMapping("/students/{id}")
+    public Student updateStudent(@RequestBody Student student,@PathVariable int id)
+    {
+        return studentService.update(id,student);
+    }
+    @DeleteMapping("/students/{id}")
+    public String deleteById(@PathVariable int id)
+    {
+        studentService.deleteById(id);
 
-        return allStudents;
+        return "Student with id: "+id+" is deleted";
     }
 }
