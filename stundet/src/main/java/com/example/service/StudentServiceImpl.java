@@ -1,19 +1,19 @@
 package com.example.service;
 
 import com.example.entity.Student;
-import com.example.exception.StudentNotFoundException;
 import com.example.repository.StudentRepository;
-import jakarta.transaction.Transactional;
+import com.example.specifications.StudentSpecifications;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
-public class StudentServiceImpl implements StudentService{
+public class StudentServiceImpl implements StudentService {
 
     private StudentRepository studentRepository;
+
     @Autowired
     public StudentServiceImpl(StudentRepository studentRepository) {
         this.studentRepository = studentRepository;
@@ -26,45 +26,40 @@ public class StudentServiceImpl implements StudentService{
 
     @Override
     public Student findById(int id) {
-        Optional<Student> found=studentRepository.findById(id);
-        Student student=null;
-        if(found.isPresent())
-        {
-            student=found.get();
-        }else {
-            throw new StudentNotFoundException("Student with id: "+id+" not found");
-        }
-        return student;
+        return studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
     }
-    @Transactional
+
     @Override
     public Student save(Student student) {
         return studentRepository.save(student);
     }
 
-    @Transactional
     @Override
     public Student update(int id, Student student) {
-        Student matched=findById(id);
-        if(matched!=null)
-        {
-            if(student.getName()!=null)
-            {
-                matched.setName(student.getName());
-            }
+        Student existingStudent = findById(id);
+        if (student.getName() != null) {
+            existingStudent.setName(student.getName());
         }
-        if(matched==null)
-        {
-            throw new StudentNotFoundException("Student with id: "+id+" not found");
-        }
-        return studentRepository.save(matched);
+        return studentRepository.save(existingStudent);
     }
-    @Transactional
+
     @Override
     public void deleteById(int id) {
-        Student matched=findById(id);
         studentRepository.deleteById(id);
     }
 
+    // New method to filter students dynamically
+    public List<Student> findStudents(String name, Integer minId) {
+        Specification<Student> spec = Specification.where(null);
 
+        if (name != null && !name.isEmpty()) {
+            spec = spec.and(StudentSpecifications.hasName(name));
+        }
+        if (minId != null) {
+            spec = spec.and(StudentSpecifications.hasIdGreaterThan(minId));
+        }
+
+        return studentRepository.findAll(spec);
+    }
 }
